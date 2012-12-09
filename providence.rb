@@ -39,10 +39,12 @@ module Providence
 
 
   class Server
-    def initialize
+    def initialize(logger)
+      @logger=logger
     end
 
     def start(port)
+      @logger.info "listen port: #{port}"
       @port=port
 
       listen = TCPServer.open(@port)
@@ -57,7 +59,7 @@ module Providence
           if socket==listen then
             accepted=socket.accept_nonblock
             sockets << accepted
-            puts "#{accepted} is accepted"
+            @logger.debug "#{accepted}: accepted"
             action_map[accepted]=Fiber.new do |socket|
               action=Action.new
 
@@ -74,7 +76,7 @@ module Providence
                   Fiber.yield
                 end
               end
-              p "FINISH !!"
+              @logger.debug "#{socket}: finished"
             end
           else
             action=action_map[socket]
@@ -100,7 +102,10 @@ end
 
 
 if __FILE__==$0 then
-  service=Providence::Server.new
+  require 'logger'
+  logger=Logger.new STDOUT
+  logger.level=Logger::DEBUG
+  service=Providence::Server.new(logger)
   service.start (ARGV.size>0 and ARGV[0] or 5000)
 end
 
